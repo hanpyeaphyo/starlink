@@ -53,7 +53,7 @@ params = {
 }
 
 # File to store the successful access codes
-output_file = "successful_access_codes.txt"
+output_file = "codes.txt"
 
 # Loop to generate and use codes 100 times
 for i in range(10000):
